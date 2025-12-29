@@ -1,0 +1,96 @@
+---
+- name: Install Nexus Service and Docker on CentOS
+  hosts: workers
+  become: true
+  vars:
+    nexus_version: "3.63.0-01"
+    nexus_download_url: "https://download.sonatype.com/nexus/3/nexus-{{ nexus_version }}-unix.tar.gz"
+    nexus_user: "nexus"
+    nexus_home: "/opt/nexus"
+    nexus_data: "/opt/sonatype-work"
+
+  tasks:
+    - name: Install Java 8 and Docker requirements
+      yum:
+        name:
+          - java-1.8.0-openjdk-devel
+          - yum-utils
+          - device-mapper-persistent-data
+          - lvm2
+        state: present
+
+    - name: Add Docker repo and Install Docker
+      shell: |
+        yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+        yum install -y docker-ce docker-ce-cli containerd.io
+        systemctl enable --now docker
+
+    - name: Create nexus user
+      user:
+        name: "{{ nexus_user }}"
+        shell: /bin/bash
+
+    - name: Download and Unarchive Nexus
+      unarchive:
+        src: "{{ nexus_download_url }}"
+        dest: /opt
+        remote_src: yes
+        owner: "{{ nexus_user }}"
+        group: "{{ nexus_user }}"
+
+    - name: Rename Nexus folder
+      shell: "mv /opt/nexus-{{ nexus_version }} {{ nexus_home }}"
+      args:
+        creates: "{{ nexus_home }}"
+
+    - name: Set permissions for Nexus data directory
+      file:
+        path: "{{ item }}"
+        owner: "{{ nexus_user }}"
+        group: "{{ nexus_user }}"
+        recurse: yes
+      with_items:
+        - "{{ nexus_home }}"
+        - "{{ nexus_data }}"
+
+    - name: Configure Nexus to run as 'nexus' user
+      lineinfile:
+        path: "{{ nexus_home }}/bin/nexus.rc"
+        regexp: '^#run_as_user=""'
+        line: 'run_as_user="nexus"'
+
+    - name: Create Systemd Service File
+      copy:
+        dest: /etc/systemd/system/nexus.service
+        content: |
+          [Unit]
+          Description=nexus service
+          After=network.target
+
+          [Service]
+          Type=forking
+          LimitNOFILE=65536
+          ExecStart={{ nexus_home }}/bin/nexus start
+          ExecStop={{ nexus_home }}/bin/nexus stop
+          User={{ nexus_user }}
+          Restart=on-abort
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Open Firewall ports
+      firewalld:
+        port: "{{ item }}"
+        permanent: yes
+        state: enabled
+        immediate: yes
+      with_items:
+        - 8081/tcp
+        - 5000/tcp
+
+    - name: Start and Enable Nexus Service
+      systemctl:
+        name: nexus
+        state: started
+        enabled: yes
+        daemon_reload: yes
