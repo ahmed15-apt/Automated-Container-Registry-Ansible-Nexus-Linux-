@@ -33,11 +33,6 @@ The goal of this project is to build a professional DevOps infrastructure that a
 2. **Update Inventory:** Add your Worker Node IP to the `hosts` file.
 3. **Run the Playbook:** ```bash
 ansible-playbook -i hosts nexus-setup.yml
-```
-
-```
-
-
 4. **Access Nexus:** Open `http://<worker-ip>:8081` in your browser.
 5. **Push your first image:**
 ```bash
