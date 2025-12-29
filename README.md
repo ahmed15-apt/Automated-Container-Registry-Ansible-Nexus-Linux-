@@ -1,8 +1,4 @@
-When you upload this project to GitHub, you want it to look professional so recruiters or other engineers understand exactly what you built.
 
-Here is a structured description (README.md) you can use for your repository:
-
----
 
 # Automated Nexus Repository Manager with Ansible & Docker
 
@@ -52,10 +48,4 @@ docker push <worker-ip>:5000/my-image:latest
 
 
 
----
 
-### **Why this project is important?**
-
-It demonstrates a deep understanding of **Linux administration**, **networking**, and **automated deployment**—the core pillars of a DevOps Engineer's role.
-
-**Would you like me to help you write a "Technical Skills" section to highlight specific concepts like Systemd or NAT that we discussed?**
